@@ -26,9 +26,6 @@ kube_apiserver_node_port_range: "30000-32767"
 # ETCD backend for k8s data
 kube_apiserver_storage_backend: etcd3
 
-# By default, force back to etcd2. Set to true to force etcd3 (experimental!)
-force_etcd3: false
-
 kube_etcd_cacert_file: ca.pem
 kube_etcd_cert_file: node-{{ inventory_hostname }}.pem
 kube_etcd_key_file: node-{{ inventory_hostname }}-key.pem
@@ -76,6 +73,16 @@ audit_policy_name: audit-policy
 audit_policy_hostpath: "{{ audit_policy_file | dirname }}"
 audit_policy_mountpath: "{{ audit_policy_hostpath }}"
 
+# audit webhook support
+kubernetes_audit_webhook: false
+
+# path to audit webhook config file
+audit_webhook_config_file: "{{ kube_config_dir }}/audit-policy/apiserver-audit-webhook-config.yaml"
+audit_webhook_server_url: "https://audit.app"
+audit_webhook_mode: batch
+audit_webhook_batch_max_size: 100
+audit_webhook_batch_max_wait: 1s
+
 # Limits for kube components
 kube_controller_memory_limit: 512M
 kube_controller_cpu_limit: 250m
@@ -109,6 +116,7 @@ kube_basic_auth: false
 kube_token_auth: false
 kube_oidc_auth: false
 kube_webhook_token_auth: false
+kube_webhook_token_auth_url_skip_tls_verify: false
 
 ## Variables for OpenID Connect Configuration https://kubernetes.io/docs/admin/authentication/
 ## To use OpenID you have to deploy additional an OpenID Provider (e.g Dex, Keycloak, ...)
@@ -155,9 +163,6 @@ kube_encryption_algorithm: "aescbc"
 # Which kubernetes resources to encrypt
 kube_encryption_resources: [secrets]
 
-# You may want to use ca.pem depending on your situation
-kube_front_proxy_ca: "front-proxy-ca.pem"
-
 # If non-empty, will use this string as identification instead of the actual hostname
 kube_override_hostname: >-
   {%- if cloud_provider is defined and cloud_provider in [ 'aws' ] -%}
@@ -166,3 +171,34 @@ kube_override_hostname: >-
   {%- endif -%}
 
 secrets_encryption_query: "resources[*].providers[0].{{kube_encryption_algorithm}}.keys[0].secret"
+
+## Support tls min version, Possible values: VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13.
+# tls_min_version: ""
+
+## Support tls cipher suites.
+# tls_cipher_suites:
+#   - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+#   - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+#   - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+#   - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+#   - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+#   - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+#   - TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
+#   - TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+#   - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+#   - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+#   - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+#   - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+#   - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+#   - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+#   - TLS_ECDHE_RSA_WITH_RC4_128_SHA
+#   - TLS_RSA_WITH_3DES_EDE_CBC_SHA
+#   - TLS_RSA_WITH_AES_128_CBC_SHA
+#   - TLS_RSA_WITH_AES_128_CBC_SHA256
+#   - TLS_RSA_WITH_AES_128_GCM_SHA256
+#   - TLS_RSA_WITH_AES_256_CBC_SHA
+#   - TLS_RSA_WITH_AES_256_GCM_SHA384
+#   - TLS_RSA_WITH_RC4_128_SHA
+
+## Amount of time to retain events. (default 1h0m0s)
+event_ttl_duration: "1h0m0s"

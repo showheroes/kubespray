@@ -9,6 +9,7 @@
   * [HA Mode](docs/ha-mode.md)
   * [Adding/replacing a node](docs/nodes.md)
   * [Large deployments](docs/large-deployments.md)
+  * [Air-Gap Installation](docs/offline-environment.md)
 * CNI
   * [Calico](docs/calico.md)
   * [Contiv](docs/contiv.md)
@@ -16,6 +17,8 @@
   * [Kube Router](docs/kube-router.md)
   * [Weave](docs/weave.md)
   * [Multus](docs/multus.md)
+* Ingress
+  * [Ambassador](docs/ambassador.md)
 * [Cloud providers](docs/cloud.md)
   * [AWS](docs/aws.md)
   * [Azure](docs/azure.md)
@@ -25,7 +28,7 @@
 * Operating Systems
   * [Debian](docs/debian.md)
   * [Coreos](docs/coreos.md)
-  * [Fedora CoreOS](docs/fcos.md)  
+  * [Fedora CoreOS](docs/fcos.md)
   * [OpenSUSE](docs/opensuse.md)
 * Advanced
   * [Proxy](/docs/proxy.md)

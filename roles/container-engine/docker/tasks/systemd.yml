@@ -11,12 +11,13 @@
   notify: restart docker
   when: http_proxy is defined or https_proxy is defined
 
-- name: get systemd version
+- name: get systemd version  # noqa 306
   # noqa 303 - systemctl is called intentionally here
   shell: systemctl --version | head -n 1 | cut -d " " -f 2
   register: systemd_version
   when: not is_ostree
   changed_when: false
+  check_mode: false
 
 - name: Write docker.service systemd file
   template:
@@ -24,7 +25,7 @@
     dest: /etc/systemd/system/docker.service
   register: docker_service_file
   notify: restart docker
-  when: not (ansible_os_family in ["CoreOS", "Coreos", "Container Linux by CoreOS", "Flatcar", "Flatcar Container Linux by Kinvolk"] or is_ostree)
+  when: not ansible_os_family in ["CoreOS", "Coreos", "Container Linux by CoreOS", "Flatcar", "Flatcar Container Linux by Kinvolk"]
 
 - name: Write docker options systemd drop-in
   template:
