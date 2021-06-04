@@ -2,9 +2,9 @@
 
 Modified from [comments in #3471](https://github.com/kubernetes-sigs/kubespray/issues/3471#issuecomment-530036084)
 
-## Limitation: Removal of first kube-master and etcd-master
+## Limitation: Removal of first kube_control_plane and etcd-master
 
-Currently you can't remove the first node in your kube-master and etcd-master list. If you still want to remove this node you have to:
+Currently you can't remove the first node in your kube_control_plane and etcd-master list. If you still want to remove this node you have to:
 
 ### 1) Change order of current masters
 
@@ -12,12 +12,12 @@ Modify the order of your master list by pushing your first entry to any other po
 
 ```yaml
   children:
-    kube-master:
+    kube_control_plane:
       hosts:
         node-1:
         node-2:
         node-3:
-    kube-node:
+    kube_node:
       hosts:
         node-1:
         node-2:
@@ -33,12 +33,12 @@ change your inventory to:
 
 ```yaml
   children:
-    kube-master:
+    kube_control_plane:
       hosts:
         node-2:
         node-3:
         node-1:
-    kube-node:
+    kube_node:
       hosts:
         node-2:
         node-3:
@@ -52,7 +52,7 @@ change your inventory to:
 
 ## 2) Upgrade the cluster
 
-run `cluster-upgrade.yml` or `cluster.yml`. Now you are good to go on with the removal.
+run `upgrade-cluster.yml` or `cluster.yml`. Now you are good to go on with the removal.
 
 ## Adding/replacing a worker node
 
@@ -70,10 +70,10 @@ Before using `--limit` run playbook `facts.yml` without the limit to refresh fac
 
 With the old node still in the inventory, run `remove-node.yml`. You need to pass `-e node=NODE_NAME` to the playbook to limit the execution to the node being removed.
   
-If the node you want to remove is not online, you should add `reset_nodes=false` to your extra-vars: `-e node=NODE_NAME reset_nodes=false`.
+If the node you want to remove is not online, you should add `reset_nodes=false` to your extra-vars: `-e node=NODE_NAME -e reset_nodes=false`.
 Use this flag even when you remove other types of nodes like a master or etcd nodes.
 
-### 5) Remove the node from the inventory
+### 4) Remove the node from the inventory
 
 That's it.
 
@@ -83,7 +83,7 @@ That's it.
 
 Append the new host to the inventory and run `cluster.yml`. You can NOT use `scale.yml` for that.
 
-### 3) Restart kube-system/nginx-proxy
+### 2) Restart kube-system/nginx-proxy
 
 In all hosts, restart nginx-proxy pod. This pod is a local proxy for the apiserver. Kubespray will update its static config, but it needs to be restarted in order to reload.
 
@@ -92,7 +92,7 @@ In all hosts, restart nginx-proxy pod. This pod is a local proxy for the apiserv
 docker ps | grep k8s_nginx-proxy_nginx-proxy | awk '{print $1}' | xargs docker restart
 ```
 
-### 4) Remove old master nodes
+### 3) Remove old master nodes
 
 With the old node still in the inventory, run `remove-node.yml`. You need to pass `-e node=NODE_NAME` to the playbook to limit the execution to the node being removed.
 If the node you want to remove is not online, you should add `reset_nodes=false` to your extra-vars.
@@ -103,10 +103,10 @@ You need to make sure there are always an odd number of etcd nodes in the cluste
 
 ### 1) Add the new node running cluster.yml
 
-Update the inventory and run `cluster.yml` passing `--limit=etcd,kube-master -e ignore_assert_errors=yes`.
+Update the inventory and run `cluster.yml` passing `--limit=etcd,kube_control_plane -e ignore_assert_errors=yes`.
 If the node you want to add as an etcd node is already a worker or master node in your cluster, you have to remove him first using `remove-node.yml`.
 
-Run `upgrade-cluster.yml` also passing `--limit=etcd,kube-master -e ignore_assert_errors=yes`. This is necessary to update all etcd configuration in the cluster.  
+Run `upgrade-cluster.yml` also passing `--limit=etcd,kube_control_plane -e ignore_assert_errors=yes`. This is necessary to update all etcd configuration in the cluster.  
 
 At this point, you will have an even number of nodes.
 Everything should still be working, and you should only have problems if the cluster decides to elect a new etcd leader before you remove a node.

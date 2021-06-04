@@ -8,7 +8,7 @@ metadata:
     kubernetes.io/description: |
       kube-ovn controller
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: kube-ovn-controller
@@ -26,7 +26,6 @@ spec:
     spec:
       tolerations:
       - operator: Exists
-        effect: NoSchedule
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -46,6 +45,8 @@ spec:
           args:
           - --default-cidr={{ kube_pods_subnet }}
           env:
+            - name: ENABLE_SSL
+              value: "{{ enable_ssl | lower }}"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -58,23 +59,39 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+          volumeMounts:
+            - mountPath: /var/run/tls
+              name: kube-ovn-tls
           readinessProbe:
             exec:
               command:
-                - sh
+                - bash
                 - /kube-ovn/kube-ovn-controller-healthcheck.sh
             periodSeconds: 3
+            timeoutSeconds: 45
           livenessProbe:
             exec:
               command:
-                - sh
+                - bash
                 - /kube-ovn/kube-ovn-controller-healthcheck.sh
             initialDelaySeconds: 300
             periodSeconds: 7
             failureThreshold: 5
+            timeoutSeconds: 45
+          resources:
+            requests:
+              cpu: {{ kube_ovn_controller_cpu_request }}
+              memory: {{ kube_ovn_controller_memory_request }}
+            limits:
+              cpu: {{ kube_ovn_controller_cpu_limit }}
+              memory: {{ kube_ovn_controller_memory_limit }}
       nodeSelector:
         kubernetes.io/os: "linux"
-
+      volumes:
+        - name: kube-ovn-tls
+          secret:
+            optional: true
+            secretName: kube-ovn-tls
 ---
 kind: DaemonSet
 apiVersion: apps/v1
@@ -88,8 +105,6 @@ spec:
   selector:
     matchLabels:
       app: kube-ovn-cni
-  updateStrategy:
-    type: OnDelete
   template:
     metadata:
       labels:
@@ -112,8 +127,6 @@ spec:
           runAsUser: 0
           privileged: true
         volumeMounts:
-          - mountPath: /etc/cni/net.d
-            name: cni-conf
           - mountPath: /opt/cni/bin
             name: cni-bin
       containers:
@@ -121,16 +134,18 @@ spec:
         image: {{ kube_ovn_container_image_repo }}:{{ kube_ovn_container_image_tag }}
         imagePullPolicy: {{ k8s_image_pull_policy }}
         command:
-          - sh
+          - bash
           - /kube-ovn/start-cniserver.sh
         args:
-          - --enable-mirror={{ traffic_mirror }}
-          - --encap-checksum={{ encap_checksum }}
+          - --enable-mirror={{ traffic_mirror | lower }}
+          - --encap-checksum={{ encap_checksum | lower }}
           - --service-cluster-ip-range={{ kube_service_addresses }}
         securityContext:
           runAsUser: 0
           privileged: true
         env:
+          - name: ENABLE_SSL
+            value: "{{ enable_ssl | lower }}"
           - name: POD_IP
             valueFrom:
               fieldRef:
@@ -140,6 +155,10 @@ spec:
               fieldRef:
                 fieldPath: spec.nodeName
         volumeMounts:
+          - mountPath: /etc/openvswitch
+            name: systemid
+          - mountPath: /etc/cni/net.d
+            name: cni-conf
           - mountPath: /run/openvswitch
             name: host-run-ovs
           - mountPath: /run/ovn
@@ -170,6 +189,9 @@ spec:
       nodeSelector:
         kubernetes.io/os: "linux"
       volumes:
+        - name: systemid
+          hostPath:
+            path: /etc/origin/openvswitch
         - name: host-run-ovs
           hostPath:
             path: /run/openvswitch
@@ -221,6 +243,8 @@ spec:
             runAsUser: 0
             privileged: false
           env:
+            - name: ENABLE_SSL
+              value: "{{ enable_ssl | lower }}"
             - name: POD_IP
               valueFrom:
                 fieldRef:
@@ -256,6 +280,8 @@ spec:
               name: host-log-ovs
             - mountPath: /var/log/ovn
               name: host-log-ovn
+            - mountPath: /var/run/tls
+              name: kube-ovn-tls
           resources:
             requests:
               cpu: {{ kube_ovn_pinger_cpu_request }}
@@ -287,6 +313,10 @@ spec:
         - name: host-log-ovn
           hostPath:
             path: /var/log/ovn
+        - name: kube-ovn-tls
+          secret:
+            optional: true
+            secretName: kube-ovn-tls
 ---
 kind: Service
 apiVersion: v1

@@ -114,6 +114,10 @@ variable "supplementary_node_groups" {
   default = ""
 }
 
+variable "master_allowed_ports" {
+  type = list
+}
+
 variable "worker_allowed_ports" {
   type = list
 }
@@ -122,4 +126,28 @@ variable "use_access_ip" {}
 
 variable "use_server_groups" {
   type = bool
+}
+
+variable "extra_sec_groups" {
+  type = bool
+}
+
+variable "extra_sec_groups_name" {
+  type = string
+}
+
+variable "image_uuid" {
+  type = string
+}
+
+variable "image_gfs_uuid" {
+  type = string
+}
+
+variable "image_master" {
+  type = string
+}
+
+variable "image_master_uuid" {
+  type = string
 }

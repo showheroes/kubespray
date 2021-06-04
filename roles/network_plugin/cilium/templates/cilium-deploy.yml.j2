@@ -29,11 +29,22 @@ spec:
         io.cilium/app: operator
         name: cilium-operator
     spec:
+      # In HA mode, cilium-operator pods must not be scheduled on the same
+      # node as they will clash with each other.
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: io.cilium/app
+                operator: In
+                values:
+                - operator
+            topologyKey: "kubernetes.io/hostname"
       containers:
         - args:
             - --debug=$(CILIUM_DEBUG)
-            - --kvstore=etcd
-            - --kvstore-opt=etcd.config=/var/lib/etcd-config/etcd.config
+            - --config-dir=/tmp/cilium/config-map
           command:
             - cilium-operator
           env:
@@ -47,6 +58,11 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: spec.nodeName
+            - name: CILIUM_K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
             - name: CILIUM_DEBUG
               valueFrom:
                 configMapKeyRef:
@@ -125,12 +141,17 @@ spec:
             - mountPath: "{{cilium_cert_dir}}"
               name: etcd-secrets
               readOnly: true
+            - mountPath: /tmp/cilium/config-map
+              name: cilium-config-path
+              readOnly: true
       dnsPolicy: ClusterFirst
       priorityClassName: system-node-critical
       restartPolicy: Always
       serviceAccount: cilium-operator
       serviceAccountName: cilium-operator
       hostNetwork: true
+      tolerations:
+        - operator: Exists
       volumes:
         # To read the etcd config stored in config maps
         - configMap:
@@ -144,3 +165,6 @@ spec:
         - name: etcd-secrets
           hostPath:
             path: "{{cilium_cert_dir}}"
+        - configMap:
+            name: cilium-config
+          name: cilium-config-path
